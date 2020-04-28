@@ -2,6 +2,7 @@ version: '3'
 services: 
     web:
         build: .
+        image: "${WEB_IMAGE}"
         ports: 
             - "8001:8001"
         volumes: 
