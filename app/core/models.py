@@ -57,8 +57,8 @@ class Tag(models.Model):
         return self.name
 
 
-class Intgredient(models.Model):
-    """Intgredient for recipe"""
+class Ingredient(models.Model):
+    """Ingredient for recipe"""
     name = models.CharField(max_length=235)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -79,7 +79,7 @@ class Recipe(models.Model):
     time_minutes = models.IntegerField()
     price = models.DecimalField(max_digits=5, decimal_places=2)
     link = models.CharField(max_length=255, blank=True)
-    intgredients = models.ManyToManyField(Intgredient)
+    ingredients = models.ManyToManyField(Ingredient)
     tags = models.ManyToManyField(Tag)
     image = models.ImageField(null=True, upload_to=get_image_url_path)
 

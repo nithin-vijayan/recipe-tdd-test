@@ -3,7 +3,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from core.models import Tag, Intgredient, Recipe
+from core.models import Tag, Ingredient, Recipe
 from recipe import serializers
 
 
@@ -39,10 +39,10 @@ class TagViewSet(BaseRecipeAttrViewSet):
     serializer_class = serializers.TagSerializer
 
 
-class IntgredientViewSet(BaseRecipeAttrViewSet):
-    """Manage Intgredients in db"""
-    queryset = Intgredient.objects.all()
-    serializer_class = serializers.IntgredientSerializer
+class IngredientViewSet(BaseRecipeAttrViewSet):
+    """Manage Ingredients in db"""
+    queryset = Ingredient.objects.all()
+    serializer_class = serializers.IngredientSerializer
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -59,14 +59,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Retrieve recies for authenticated user"""
         params_tag = self.request.query_params.get('tags')
-        params_intgredients = self.request.query_params.get('intgredients')
+        params_ingredients = self.request.query_params.get('ingredients')
         queryset = self.queryset
         if params_tag:
             ids = self._params_to_int(params_tag)
             queryset = queryset.filter(tags__id__in=ids)
-        if params_intgredients:
-            ids = self._params_to_int(params_intgredients)
-            queryset = queryset.filter(intgredients__id__in=ids)
+        if params_ingredients:
+            ids = self._params_to_int(params_ingredients)
+            queryset = queryset.filter(ingredients__id__in=ids)
 
         return queryset.filter(user=self.request.user)
 

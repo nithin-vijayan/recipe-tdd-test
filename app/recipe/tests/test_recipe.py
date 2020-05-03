@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from PIL import Image
-from core.models import Recipe, Tag, Intgredient
+from core.models import Recipe, Tag, Ingredient
 from recipe.serializers import RecipeSerializer, RecipeDetailSerializer
 import tempfile
 import os
@@ -25,8 +25,8 @@ def sample_tag(user, name='sampletag'):
     return Tag.objects.create(user=user, name=name)
 
 
-def sample_intgredient(user, name='Salt'):
-    return Intgredient.objects.create(user=user, name=name)
+def sample_ingredient(user, name='Salt'):
+    return Ingredient.objects.create(user=user, name=name)
 
 
 def sample_recipe(user, **params):
@@ -95,7 +95,7 @@ class PrivateRecipeApiTest(TestCase):
         """Test viewing a recipe detail"""
         recipe = sample_recipe(user=self.user)
         recipe.tags.add(sample_tag(user=self.user))
-        recipe.intgredients.add(sample_intgredient(user=self.user))
+        recipe.ingredients.add(sample_ingredient(user=self.user))
 
         url = detail_url(recipe.id)
         res = self.client.get(url)
@@ -141,12 +141,12 @@ class PrivateRecipeApiTest(TestCase):
 
     def test_create_recipe_withIngredients(self):
         """Test creating recipe with ingredients"""
-        intgredient1 = sample_intgredient(user=self.user, name='Salt')
-        intgredient2 = sample_intgredient(user=self.user, name='Eggs')
+        ingredient1 = sample_ingredient(user=self.user, name='Salt')
+        ingredient2 = sample_ingredient(user=self.user, name='Eggs')
 
         payload = {
             'title': 'Myonaisse',
-            'intgredients': [intgredient1.id, intgredient2.id],
+            'ingredients': [ingredient1.id, ingredient2.id],
             'time_minutes': 10,
             'price': 25.00
         }
@@ -155,10 +155,10 @@ class PrivateRecipeApiTest(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         recipe = Recipe.objects.get(id=res.data['id'])
-        intgredients = recipe.intgredients.all()
-        self.assertEqual(intgredients.count(), 2)
-        self.assertIn(intgredient1, intgredients)
-        self.assertIn(intgredient2, intgredients)
+        ingredients = recipe.ingredients.all()
+        self.assertEqual(ingredients.count(), 2)
+        self.assertIn(ingredient1, ingredients)
+        self.assertIn(ingredient2, ingredients)
 
     def test_partial_update_recipe(self):
         """Test updating a recipe with patch"""
@@ -251,19 +251,19 @@ class ImageApiTest(TestCase):
         self.assertIn(serializer2.data, res.data)
         self.assertNotIn(serializer3.data, res.data)
 
-    def test_filter_recipe_by_intgredients(self):
-        """Filter recipes by intgredients"""
+    def test_filter_recipe_by_ingredients(self):
+        """Filter recipes by ingredients"""
         recipe1 = sample_recipe(user=self.user, title='Chicken Curry')
         recipe2 = sample_recipe(user=self.user, title='Chicken Tkikka')
         recipe3 = sample_recipe(user=self.user)
-        intgredient1 = sample_intgredient(user=self.user, name='Chicken')
-        intgredient2 = sample_intgredient(user=self.user, name='Masala')
-        recipe1.intgredients.add(intgredient1)
-        recipe2.intgredients.add(intgredient2)
+        ingredient1 = sample_ingredient(user=self.user, name='Chicken')
+        ingredient2 = sample_ingredient(user=self.user, name='Masala')
+        recipe1.ingredients.add(ingredient1)
+        recipe2.ingredients.add(ingredient2)
 
         res = self.client.get(
             RECIPE_URL,
-            {'intgredients': f'{intgredient1.id},{intgredient2.id}'}
+            {'ingredients': f'{ingredient1.id},{ingredient2.id}'}
             )
 
         serializer1 = RecipeSerializer(recipe1)

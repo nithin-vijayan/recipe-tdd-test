@@ -3,28 +3,28 @@ from django.urls import reverse
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
-from core.models import Intgredient, Recipe
-from recipe.serializers import IntgredientSerializer
+from core.models import Ingredient, Recipe
+from recipe.serializers import IngredientSerializer
 
 
-INTGREDIENT_URL = reverse('recipe:intgredient-list')
+INGREDIENT_URL = reverse('recipe:ingredient-list')
 
 
-class PublicIntgredientsApiTest(TestCase):
-    """Test Intgrediant public api endpoints"""
+class PublicIngredientsApiTest(TestCase):
+    """Test Ingrediant public api endpoints"""
 
     def setUp(self):
         self.client = APIClient()
 
     def test_login_required(self):
         """Test login is required to list"""
-        res = self.client.get(INTGREDIENT_URL)
+        res = self.client.get(INGREDIENT_URL)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class PrivateIntgredientsApiTest(TestCase):
-    """Test intgredients can be retrived bu aiuth user"""
+class PrivateIngredientsApiTest(TestCase):
+    """Test ingredients can be retrived bu aiuth user"""
 
     def setUp(self):
         self.client = APIClient()
@@ -34,52 +34,52 @@ class PrivateIntgredientsApiTest(TestCase):
         )
         self.client.force_authenticate(self.user)
 
-    def test_retrieve_intgredients_list(self):
-        """Test retrieving a list of intgredients"""
-        Intgredient.objects.create(user=self.user, name='Kale')
-        Intgredient.objects.create(user=self.user, name='Salt')
+    def test_retrieve_ingredients_list(self):
+        """Test retrieving a list of ingredients"""
+        Ingredient.objects.create(user=self.user, name='Kale')
+        Ingredient.objects.create(user=self.user, name='Salt')
 
-        res = self.client.get(INTGREDIENT_URL)
+        res = self.client.get(INGREDIENT_URL)
 
-        intgredients = Intgredient.objects.all().order_by('-name')
-        serializer = IntgredientSerializer(intgredients, many=True)
+        ingredients = Ingredient.objects.all().order_by('-name')
+        serializer = IngredientSerializer(ingredients, many=True)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
-    def test_intgredients_auth_user(self):
-        """Test intgredients can be retireved for auth user"""
+    def test_ingredients_auth_user(self):
+        """Test ingredients can be retireved for auth user"""
         user2 = get_user_model().objects.create_user(
             'test2@app.com',
             'userpass2'
         )
-        Intgredient.objects.create(user=user2, name='Kale')
-        intgredient = Intgredient.objects.create(user=self.user, name='Salt')
+        Ingredient.objects.create(user=user2, name='Kale')
+        ingredient = Ingredient.objects.create(user=self.user, name='Salt')
 
-        res = self.client.get(INTGREDIENT_URL)
+        res = self.client.get(INGREDIENT_URL)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]['name'], intgredient.name)
+        self.assertEqual(res.data[0]['name'], ingredient.name)
 
-    def test_create_intgredient_success(self):
-        """Test creating intgredient is success with a valid payload"""
+    def test_create_ingredient_success(self):
+        """Test creating ingredient is success with a valid payload"""
         payload = {'name': 'Broccoli'}
-        self.client.post(INTGREDIENT_URL, payload)
+        self.client.post(INGREDIENT_URL, payload)
 
-        exists = Intgredient.objects.filter(
+        exists = Ingredient.objects.filter(
             user=self.user,
             name=payload['name']
         ).exists()
         self.assertTrue(exists)
 
-    def test_create_intgredient_invalid(self):
-        """Test creating intgredient is fails with a invalid payload"""
+    def test_create_ingredient_invalid(self):
+        """Test creating ingredient is fails with a invalid payload"""
         payload = {'name': ''}
-        self.client.post(INTGREDIENT_URL, payload)
-        res = self.client.post(INTGREDIENT_URL, payload)
+        self.client.post(INGREDIENT_URL, payload)
+        res = self.client.post(INGREDIENT_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_intgredients_assigned_only(self):
+    def test_ingredients_assigned_only(self):
         """Test filtering integredients returned only assigned to recipes"""
         recipe = Recipe.objects.create(
             title='Chicken Tikka',
@@ -87,23 +87,23 @@ class PrivateIntgredientsApiTest(TestCase):
             price=5.00,
             user=self.user
         )
-        ingredient1 = Intgredient.objects.create(
+        ingredient1 = Ingredient.objects.create(
             user=self.user, name='Chicken'
             )
-        ingredient2 = Intgredient.objects.create(
+        ingredient2 = Ingredient.objects.create(
             user=self.user, name='Milk'
             )
-        recipe.intgredients.add(ingredient1)
+        recipe.ingredients.add(ingredient1)
 
-        res = self.client.get(INTGREDIENT_URL, {'assigned_only': 1})
+        res = self.client.get(INGREDIENT_URL, {'assigned_only': 1})
 
-        serializer1 = IntgredientSerializer(ingredient1)
-        serializer2 = IntgredientSerializer(ingredient2)
+        serializer1 = IngredientSerializer(ingredient1)
+        serializer2 = IngredientSerializer(ingredient2)
 
         self.assertIn(serializer1.data, res.data)
         self.assertNotIn(serializer2.data, res.data)
 
-    def test_intgredient_return_unique(self):
+    def test_ingredient_return_unique(self):
         recipe1 = Recipe.objects.create(
             title='Chicken Tikka',
             time_minutes=10,
@@ -116,17 +116,17 @@ class PrivateIntgredientsApiTest(TestCase):
             price=5.00,
             user=self.user
         )
-        ingredient1 = Intgredient.objects.create(
+        ingredient1 = Ingredient.objects.create(
             user=self.user, name='Chicken'
             )
-        Intgredient.objects.create(user=self.user, name='Milk')
+        Ingredient.objects.create(user=self.user, name='Milk')
 
-        recipe1.intgredients.add(ingredient1)
-        recipe2.intgredients.add(ingredient1)
+        recipe1.ingredients.add(ingredient1)
+        recipe2.ingredients.add(ingredient1)
 
-        res = self.client.get(INTGREDIENT_URL, {'assigned_only': 1})
+        res = self.client.get(INGREDIENT_URL, {'assigned_only': 1})
 
-        serializer1 = IntgredientSerializer(ingredient1)
+        serializer1 = IngredientSerializer(ingredient1)
 
         self.assertEqual(len(res.data), 1)
         self.assertIn(serializer1.data, res.data)
