@@ -3,11 +3,18 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
+from PIL import Image
 from core.models import Recipe, Tag, Intgredient
 from recipe.serializers import RecipeSerializer, RecipeDetailSerializer
+import tempfile
+import os
 
 
 RECIPE_URL = reverse('recipe:recipe-list')
+
+
+def image_url(recipe_id):
+    return reverse('recipe:recipe-upload-image', args=(recipe_id,))
 
 
 def detail_url(recipe_id):
@@ -188,3 +195,80 @@ class PrivateRecipeApiTest(TestCase):
         self.assertEqual(recipe.price, payload['price'])
         self.assertEqual(recipe.time_minutes, payload['time_minutes'])
         self.assertEqual(len(tags), 0)
+
+
+class ImageApiTest(TestCase):
+    """Test image upload apis"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            'user@email.com', 'password'
+            )
+        self.client.force_authenticate(user=self.user)
+        self.recipe = sample_recipe(user=self.user)
+
+    def tearDown(self):
+        self.recipe.image.delete()
+
+    def test_image_upload_valid(self):
+        """Test imag upload with valid payload"""
+        url = image_url(self.recipe.id)
+
+        with tempfile.NamedTemporaryFile(suffix='.jpg') as fil:
+            img = Image.new('RGB', (10, 10))
+            img.save(fil, format='JPEG')
+            fil.seek(0)
+            res = self.client.post(url, {'image': fil}, format='multipart')
+
+        self.recipe.refresh_from_db()
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn('image', res.data)
+        self.assertTrue(os.path.exists(self.recipe.image.path))
+
+    def test_upload_invalid_image(self):
+        """Test image upload with invalid image"""
+        url = image_url(self.recipe.id)
+        res = self.client.post(url, {'image': 'none'}, format='multipart')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filter_recipe_by_tag(self):
+        """Test recipe can be filtered by tags"""
+        recipe1 = sample_recipe(user=self.user, title="Chicken Curry")
+        recipe2 = sample_recipe(user=self.user, title="Chicken Tikka")
+        recipe3 = sample_recipe(user=self.user)
+        tag1 = sample_tag(user=self.user, name='Chicken')
+        tag2 = sample_tag(user=self.user, name='Curry')
+        recipe1.tags.add(tag1)
+        recipe2.tags.add(tag2)
+
+        res = self.client.get(RECIPE_URL, {'tags': f'{tag1.id},{tag2.id}'})
+
+        serializer1 = RecipeSerializer(recipe1)
+        serializer2 = RecipeSerializer(recipe2)
+        serializer3 = RecipeSerializer(recipe3)
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
+
+    def test_filter_recipe_by_intgredients(self):
+        """Filter recipes by intgredients"""
+        recipe1 = sample_recipe(user=self.user, title='Chicken Curry')
+        recipe2 = sample_recipe(user=self.user, title='Chicken Tkikka')
+        recipe3 = sample_recipe(user=self.user)
+        intgredient1 = sample_intgredient(user=self.user, name='Chicken')
+        intgredient2 = sample_intgredient(user=self.user, name='Masala')
+        recipe1.intgredients.add(intgredient1)
+        recipe2.intgredients.add(intgredient2)
+
+        res = self.client.get(
+            RECIPE_URL,
+            {'intgredients': f'{intgredient1.id},{intgredient2.id}'}
+            )
+
+        serializer1 = RecipeSerializer(recipe1)
+        serializer2 = RecipeSerializer(recipe2)
+        serializer3 = RecipeSerializer(recipe3)
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
